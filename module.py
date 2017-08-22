@@ -49,7 +49,7 @@ class Generator(module):
     def _logits(self):
         return self.outputs
 
-def Discriminator(module):
+class Discriminator(module):
     def __init__(self, args, name="Discriminator"):
         self.name = name
         self.args = args
