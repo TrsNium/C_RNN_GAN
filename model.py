@@ -35,6 +35,8 @@ class model():
         optimizer_d = tf.train.AdamOptimizer(self.args.lr).minimize(self.d_loss)
 
         config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.log_device_placement = True
         with tf.Session(config=config) as sess:
             train_graph = tf.summary.FileWriter("./logs", sess.graph)
             merged_summary = tf.summary.merge_all()
@@ -46,7 +48,7 @@ class model():
                 for itr in range(self.args.pretrain_itrs):
                     pass
 
-                saver_.save(sess, self.args.pretrain_path)
+                saver_.save(sess, self.args.pretrain_path+"model.ckpt")
                 print("finished pre-training")
             else:
                 if not os.path.exists(self.args.pretrain_path):
@@ -54,7 +56,7 @@ class model():
                     return
 
                 saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope='Generater'))
-                saver_.restore(sess, self.args.pretrain_path)
+                saver_.restore(sess, self.args.pretrain_path+"model.ckpt")
                 print("finished restoring check point.")
 
             saver = tf.train.Saver(tf.global_variables())
@@ -65,10 +67,12 @@ class model():
                     train_graph.add_summary(summary, itr_)
 
                 if itr_ % 1000 == 0:
-                    saver.save(sess, self.args.train_path)
+                    saver.save(sess, self.args.train_path+"model.ckpt")
 
     def generate(self):
         config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.log_device_placement = True
         with tf.Session(config=config) as sess:
             saver = tf.train.Saver(tf.global_variables())
             saver.restore(sess, self.args.train_path)
