@@ -72,12 +72,15 @@ class model():
                 for i in range(0,self.args.max_time_step*self.args.max_time_step_num, self.args.max_time_step):
                     labels_ = labels[:,i*self.args.max_time_step:(i+1)*self.args.max_time_step,:]
                 
-                
+                    
+                batch_total_loss /= self.args.max_time_step_num
                 if itr_ % 100 == 0:
                     train_graph.add_summary(summary, itr_)
+                    print(itr_, ":   g_loss:", g_loss, "   d_loss:", d_loss)
 
                 if itr_ % 1000 == 0:
                     saver.save(sess, self.args.train_path+"model.ckpt")
+                    print("-------------------saved model---------------------")
 
     def generate(self):
         config = tf.ConfigProto()
