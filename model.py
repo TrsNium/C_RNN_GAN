@@ -1,7 +1,7 @@
 import tensorflow as tf
 from module import *
 import os
-
+from util import mk_batch_func_not_pre_train
 
 class model():
     def __ini__(self, args):
