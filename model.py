@@ -6,7 +6,7 @@ from util import mk_batch_func_not_pre_train
 class model():
     def __ini__(self, args):
         self.args.args
-        self.pre_train_labels = tf.placeholder(tf.float32, [None, args.time_step, args.vocab_size], "pre_train_labels")
+        self.pre_train_labels = tf.placeholder(tf.float32, [None, args.max_time_step, args.vocab_size], "pre_train_labels")
         self.real = tf.placeholder(tf.float32, [None, args.max_time_step, args.vocab_size], "real_inputs")
         
 
@@ -33,6 +33,12 @@ class model():
         optimizer_g_p = tf.train.AdamOptimizer(self.args.lr).minimize(self.p_g_loss)
         optimizer_g = tf.train.AdamOptimizer(self.args.lr).minimize(self.g_loss)
         optimizer_d = tf.train.AdamOptimizer(self.args.lr).minimize(self.d_loss)
+        
+        if self.args.pretraining:
+            pass
+        else:
+            mk_batch = mk_batch_func_not_pre_train(self.args.batch_size, self.args.max_time_step, self.args.fs)
+    
 
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
@@ -51,6 +57,7 @@ class model():
                 saver_.save(sess, self.args.pretrain_path+"model.ckpt")
                 print("finished pre-training")
             else:
+                '''
                 if not os.path.exists(self.args.pretrain_path):
                     print("not exits pretrain check point! damn shit byebye;)")
                     return
@@ -58,10 +65,16 @@ class model():
                 saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope='Generater'))
                 saver_.restore(sess, self.args.pretrain_path+"model.ckpt")
                 print("finished restoring check point.")
+                '''
 
             saver = tf.train.Saver(tf.global_variables())
             for itr_ in range(self.args.train_itrs):
-
+                batch_total_loss = 0.
+                labels, atribute = mk_batch(self.args.max_time_step_num)
+                for i in range(0,self.args.max_time_step*self.args.max_time_step_num, self.args.max_time_step):
+                    labels_ = labels[:,i*self.args.max_time_step:(i+1)*self.args.max_time_step,:]
+                    
+                
                 
                 if itr_ % 100 == 0:
                     train_graph.add_summary(summary, itr_)
