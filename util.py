@@ -20,7 +20,6 @@ def mk_batch_func_not_pre_train(batch_size, time_step, fs=100):
             merged_data.append(dir[i]+"/"+data)
     
     def mk_batch_func(max_time_step_num):
-        choiced = [random.choice(merged_data) for _ in range(batch_size)]
         r = []
         atribute = []
         for _ in range(batch_size):
@@ -51,3 +50,17 @@ def mk_batch_func_pre_train(batch_size, time_step, fs=100):
     for i,atribute_datas in enumerate(atribute_data_path):
         for data in atribute_datas:
             merged_data.append(dir[i]+"/"+data)
+
+    def mk_batch(max_time_step_num):
+        r = []
+        for _ in range(batch_size):
+            p_r = None
+            while p_r == None:
+                try:
+                    path = random.choice(merged_data)
+                    p_r = read_midi_as_piano_roll(path, fs)
+                except:
+                    continue
+
+            p_r /= np.max(p_r)
+             
