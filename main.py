@@ -7,6 +7,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", dest="lr", type=float, default= 0.002)
     parser.add_argument("--train_itr", dest="train_itrs", type=int, default=1000)
     parser.add_argument("--pretraining", dest="pretraining", type=bool, default=False)
+    parser.add_argument("--pretraining_done", dest="pretraining_done", type=bool, default=False)
     parser.add_argument("--fs", dest="fs", type=int, default=100)
     parser.add_argument("--atribute_size", dest="atribute_size", type=int, default=3)
     parser.add_argument("pretrain_itrs", dest="pretrain_itrs", type=int, default=10000)

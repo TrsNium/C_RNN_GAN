@@ -48,7 +48,7 @@ class model():
             merged_summary = tf.summary.merge_all()
             sess.run(tf.global_variables_initializer())
         
-            if self.args.pretraining:
+            if self.args.pretraining and not self.args.pretraining_done:
                 print("started pre-training")
                 saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope="Generater")))
                 for itr in range(self.args.pretrain_itrs):
@@ -56,16 +56,14 @@ class model():
 
                 saver_.save(sess, self.args.pretrain_path+"model.ckpt")
                 print("finished pre-training")
-            else:
-                '''
+            elif self.args.pretraining and self.pretraining_done:
                 if not os.path.exists(self.args.pretrain_path):
                     print("not exits pretrain check point! damn shit byebye;)")
                     return
 
                 saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope='Generater'))
                 saver_.restore(sess, self.args.pretrain_path+"model.ckpt")
-                print("finished restoring check point.")
-                '''
+                print("finished restoring check point.")                
 
             saver = tf.train.Saver(tf.global_variables())
             for itr_ in range(self.args.train_itrs):
@@ -73,7 +71,6 @@ class model():
                 labels, atribute = mk_batch(self.args.max_time_step_num)
                 for i in range(0,self.args.max_time_step*self.args.max_time_step_num, self.args.max_time_step):
                     labels_ = labels[:,i*self.args.max_time_step:(i+1)*self.args.max_time_step,:]
-                    
                 
                 
                 if itr_ % 100 == 0:
