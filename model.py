@@ -6,13 +6,17 @@ from util import mk_batch_func_not_pre_train
 class model():
     def __ini__(self, args):
         self.args.args
+        self.pre_train_inputs = tf.placeholder(tf.float32, [None, args.max_time_step, args.vocab_size], "pre_train_inputs")
         self.pre_train_labels = tf.placeholder(tf.float32, [None, args.max_time_step, args.vocab_size], "pre_train_labels")
         self.real = tf.placeholder(tf.float32, [None, args.max_time_step, args.vocab_size], "real_inputs")
-        
+        self.atribute_inputs = tf.placeholder(tf.float32, [None, args.atribute_size])
 
         #pre training
-        gen= Generator(args)
-        gen.pre_train_outputs()
+        if args.pretraining
+            gen = Generator(args, self.pre_train_inputs, self.atribute_inputs)
+        else
+            gen = Generator(args, None, self.atribute_inputs)
+
         self.p_g_loss = gen._pre_train(self.pre_train_labels)
 
         #train GAN

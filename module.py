@@ -8,33 +8,32 @@ class module(object):
         return cell_
 
 class Generator(module):
-    def __init__(self, args, name="Genenator"):
-        self.y = y
+    def __init__(self, args, x=None, attribute=None, name="Genenator"):
         with tf.variable_scope(name) as scope:
             scope.set_regularizer(tf.contrib.layers.l2_regularizer(scale=FLAGS.reg_scale))
             cell_ = tf.contrib.rnn.MultiRNNCell([super(self).define_cell() for _ in range(args.num_layers_d)], state_is_tuple = True)
-            random_ = tf.random_uniform(shape=[args.batch_size, args.max_time_step, args.feature_size], minval=0.0, maxval=1.0, dtype=data_type())
-                
+            
             state_ = cell_.zero_state(batch_size=args.batch_size, dtype=tf.float32)
             self.outputs = []
             for t_ in range(args.max_time_step):
                 if t_ != 0:
                     scope.reuse_variables()
 
-                rnn_input_ = tf.layers.dense(random_[:,t_,:], args.rnn_input_size, tf.nn.relu, name="RNN_INPUT_DENSE")
+                rnn_input_ = tf.layers.dense(attribute, args.rnn_input_size, tf.nn.relu, name="RNN_INPUT_DENSE")
                 rnn_output_, state_ = cell_(rnn_input_, state_)
                 output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
                 self.outputs.append(output_)
 
             scope.reuse_variables()
 
+            ##pre training
             state_ = cell_.zero_state(batch_size=args.batch_size, dtype=tf.float32)
             self.pre_train_outputs = []
             for t_ in range(args.max_time_step):
                 if t_ != 0:
                     scope.reuse_variables()
 
-                rnn_input_ = tf.layers.dense(random_[:,t_,:], args.rnn_input_size, tf.nn.relu, name="RNN_INPUT_DENSE")
+                rnn_input_ = tf.layers.dense(x, args.rnn_input_size, tf.nn.relu, name="RNN_INPUT_DENSE")
                 rnn_output_, state_ = call_(rnn_input_, state)
                 output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
                 self.pre_train_outputs.append(output_)
