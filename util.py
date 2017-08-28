@@ -52,7 +52,8 @@ def mk_batch_func_pre_train(batch_size, time_step, fs=100):
             merged_data.append(dir[i]+"/"+data)
 
     def mk_batch(max_time_step_num):
-        r = []
+        x = []
+        label = []
         for _ in range(batch_size):
             p_r = None
             while p_r == None:
@@ -63,4 +64,9 @@ def mk_batch_func_pre_train(batch_size, time_step, fs=100):
                     continue
 
             p_r /= np.max(p_r)
-             
+            x.append(p_r[:,:time_step*max_time_step_num])
+            label.append(p_r[:,1,time_step*max_time_step_num+1])
+        return np.transpose(np.array(x), (0,2,1)), np.transpose(np.array(label), (0,2,1))
+
+
+

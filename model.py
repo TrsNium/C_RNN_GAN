@@ -38,10 +38,8 @@ class model():
         optimizer_g = tf.train.AdamOptimizer(self.args.lr).minimize(self.g_loss)
         optimizer_d = tf.train.AdamOptimizer(self.args.lr).minimize(self.d_loss)
         
-        if self.args.pretraining:
-            pass
-        else:
-            mk_batch = mk_batch_func_not_pre_train(self.args.batch_size, self.args.max_time_step, self.args.fs)
+        mk_pretrain_batch = mk_pretrain_batch(self.args.batch_size, self.args.max_time_step, self.args.fs)
+        mk_batch = mk_batch_func_not_pre_train(self.args.batch_size, self.args.max_time_step, self.args.fs)
     
 
         config = tf.ConfigProto()
