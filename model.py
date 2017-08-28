@@ -75,8 +75,8 @@ class model():
                 labels, atribute = mk_batch(self.args.max_time_step_num)
                 for step in range(self.args.max_time_step_num):
                     labels_ = labels[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
-                    g_loss_, _ = sess.run([self.g_loss, optimizer_g], feed_dict={})
-                    d_loss_, _ = sess.run([self.d_loss, optimizer_d], feed_dict={})
+                    g_loss_, _ = sess.run([self.g_loss, optimizer_g], feed_dict={self.real:labels_, self.atribute_inputs:atribute})
+                    d_loss_, _ = sess.run([self.d_loss, optimizer_d], feed_dict={self.real:labels_, self.atribute_inputs:atribute})
                     g_loss += g_loss_
                     d_loss += d_loss_
                     
