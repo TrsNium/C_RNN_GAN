@@ -12,9 +12,9 @@ class model():
         self.atribute_inputs = tf.placeholder(tf.float32, [None, args.atribute_size])
 
         #pre training
-        if args.pretraining
+        if args.pretraining:
             gen = Generator(args, self.pre_train_inputs, self.atribute_inputs)
-        else
+        else:
             gen = Generator(args, None, self.atribute_inputs)
 
         self.p_g_loss = gen._pre_train(self.pre_train_labels)
