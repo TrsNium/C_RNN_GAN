@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 def define_cell(rnn_size, keep_prob):
-    cell_ = tf.contrib.rnn.BasicLSTMCell(rnn_size, tf.get_variable_scope().reuse)
+    cell_ = tf.contrib.rnn.BasicLSTMCell(rnn_size, state_is_tuple=True, reuse=tf.get_variable_scope().reuse)
     if keep_prob < 1.:
         cell_ = tf.contrib.rnn.DropoutWrapper(cell_, output_keep_prob=keep_prob)
     return cell_
@@ -11,8 +11,8 @@ class Generator():
     def __init__(self, args, x=None, attribute=None, name="Genenator"):
         with tf.variable_scope(name) as scope:
             scope.set_regularizer(tf.contrib.layers.l2_regularizer(scale=args.scale))
-            cell_ = tf.contrib.rnn.MultiRNNCell([define_cell(args.gen_rnn_size, args.keep_prob) for _ in range(args.num_layers_g)], state_is_tuple = True)
-     
+            cell_ = tf.contrib.rnn.MultiRNNCell([define_cell(args.gen_rnn_size, args.keep_prob) for _ in range(args.num_layers_g)])
+         
             state_ = cell_.zero_state(batch_size=args.batch_size, dtype=tf.float32)
             outputs = []
             for t_ in range(args.max_time_step):
@@ -24,6 +24,7 @@ class Generator():
                 rnn_output_, state_ = cell_(rnn_input_, state_)
                 output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
                 outputs.append(output_)
+            self.state = state_
             self.outputs = tf.transpose(tf.stack(outputs), (1,0,2))
             scope.reuse_variables()
 
@@ -38,16 +39,17 @@ class Generator():
                 rnn_output_, state_ = cell_(rnn_input_, state_)
                 output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
                 pre_train_outputs.append(output_)
+            self.p_state = state_
             self.pre_train_outputs = tf.transpose(tf.stack(pre_train_outputs), (1,0,2)) 
             reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
             self.reg_loss = args.reg_constant * sum(reg_losses)
     
     def _pre_train(self, y):
         loss = tf.reduce_mean(tf.squared_difference(self.pre_train_outputs, y)) + self.reg_loss
-        return loss
+        return loss, self.p_state
 
     def _logits(self):
-        return self.outputs
+        return self.outputs, self.state
 
 class Discriminator(object):
     def __init__(self, args, name="Discriminator"):

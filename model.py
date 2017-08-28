@@ -1,24 +1,25 @@
 import tensorflow as tf
 from module import *
 import os
-from util import mk_batch_func_not_pre_train
+from util import mk_batch_func_not_pre_train, mk_batch_func_pre_train
 
 class model():
     def __init__(self, args):
         self.args = args
+
+    
         self.pre_train_inputs = tf.placeholder(tf.float32, [None, args.max_time_step, args.vocab_size], "pre_train_inputs")
         self.pre_train_labels = tf.placeholder(tf.float32, [None, args.max_time_step, args.vocab_size], "pre_train_labels")
         self.real = tf.placeholder(tf.float32, [None, args.max_time_step, args.vocab_size], "real_inputs")
         self.atribute_inputs = tf.placeholder(tf.float32, [None, args.atribute_size])
+        
 
         #pre training
         gen = Generator(args, self.pre_train_inputs, self.atribute_inputs)
-        self.p_g_loss = gen._pre_train(self.pre_train_labels)
-
-        print(gen)
+        self.p_g_loss, self.p_state = gen._pre_train(self.pre_train_labels)
 
         #train GAN
-        self.fake = gen._logits()
+        self.fake, self.f_state = gen._logits()
         print(self.fake.get_shape().as_list())
         dis = Discriminator(args)
         dis_fake, dis_real = dis._logits(self.fake, self.real)
@@ -26,21 +27,19 @@ class model():
         self.d_loss = tf.reduce_mean(tf.squared_difference(dis_real, tf.ones_like(dis_real))) + tf.reduce_mean(tf.squared_difference(dis_fake, tf.zeros_like(dis_fake)))
         self.g_loss = tf.reduce_mean(tf.squared_difference(dis_fake, tf.ones_like(dis_fake)))
 
-        with tf.variable_scope("summary"):
-            tf.summary.scalar("pre_train_loss", self.p_g_loss)
-            tf.summary.scalar("discriminator_loss", self.d_loss)
-            tf.summary.scalar("generator_loss", self.g_loss)
+        tf.summary.scalar("pre_train_loss", self.p_g_loss)
+        tf.summary.scalar("discriminator_loss", self.d_loss)
+        tf.summary.scalar("generator_loss", self.g_loss)
 
     def train(self):
         optimizer_g_p = tf.train.AdamOptimizer(self.args.lr).minimize(self.p_g_loss)
         optimizer_g = tf.train.AdamOptimizer(self.args.lr).minimize(self.g_loss)
         optimizer_d = tf.train.AdamOptimizer(self.args.lr).minimize(self.d_loss)
         
-        mk_pretrain_batch = mk_pretrain_batch(self.args.batch_size, self.args.max_time_step, self.args.fs)
+        mk_pretrain_batch = mk_batch_func_pre_train(self.args.batch_size, self.args.max_time_step, self.args.fs)
         mk_batch = mk_batch_func_not_pre_train(self.args.batch_size, self.args.max_time_step, self.args.fs)
     
-
-        config = tf.ConfigProto()
+        config = tf.ConfigProto(device_count = {'GPU': 1})
         config.gpu_options.allow_growth = True
         config.log_device_placement = True
         with tf.Session(config=config) as sess:
