@@ -60,12 +60,12 @@ class Discriminator(object):
             fw = tf.contrib.rnn.MultiRNNCell([define_cell(self.args.dis_rnn_size, self.args.keep_prob) for _ in range(self.args.num_layers_d)], state_is_tuple=True)
             bw = tf.contrib.rnn.MultiRNNCell([define_cell(self.args.dis_rnn_size, self.args.keep_prob) for _ in range(self.args.num_layers_d)], state_is_tuple=True)
             rnn_output, state = tf.nn.bidirectional_dynamic_rnn(fw,
-                                            bw,
-                                            x,
-                                            initial_state_fw=fw.zero_state(batch_size=self.args.batch_size, dtype=tf.float32),
-                                            initial_state_bw=bw.zero_state(batch_size=self.args.batch_size, dtype=tf.float32), 
-                                            dtype=tf.float32,
-                                            swap_memory = True)
+                                                                bw,
+                                                                x,
+                                                                initial_state_fw=fw.zero_state(batch_size=self.args.batch_size, dtype=tf.float32),
+                                                                initial_state_bw=bw.zero_state(batch_size=self.args.batch_size, dtype=tf.float32), 
+                                                                dtype=tf.float32,
+                                                                swap_memory = True)
             
             outputs = [] 
             for t_ in range(self.args.max_time_step):
@@ -76,7 +76,6 @@ class Discriminator(object):
             x_logits = tf.transpose(tf.stack(outputs), (1,0,2))
         
             scope.reuse_variables()
-
             rnn_output, state = tf.nn.bidirectional_dynamic_rnn(fw,
                                                                 bw,
                                                                 y,
@@ -91,7 +90,6 @@ class Discriminator(object):
 
                 outputs.append(tf.layers.dense(tf.concat([rnn_output[0][:,t_,:],rnn_output[1][:,t_,:]], axis=-1), 1, name="RNN_OUTPUT_DENSE"))
             y_logits = tf.transpose(tf.stack(outputs), (1,0,2))
-
             return x_logits, y_logits
 
     
