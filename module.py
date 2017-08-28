@@ -1,43 +1,44 @@
 import tensorflow as tf
 
-class module(object):
-    def define_cell(args):
-        cell_ = tf.contrib.rnn.BasicLSTMCell(args.dis_rnn_size, tf.get_variable_scope().reuse)
-        if args.gen_keep_prob < 1.:
-            cell_ = tf.contrib.rnn.DropoutWrapper(cell_, output_keep_prob=args.gen_keep_prob)
-        return cell_
 
-class Generator(module):
+def define_cell(rnn_size, keep_prob):
+    cell_ = tf.contrib.rnn.BasicLSTMCell(rnn_size, tf.get_variable_scope().reuse)
+    if keep_prob < 1.:
+        cell_ = tf.contrib.rnn.DropoutWrapper(cell_, output_keep_prob=keep_prob)
+    return cell_
+
+class Generator():
     def __init__(self, args, x=None, attribute=None, name="Genenator"):
         with tf.variable_scope(name) as scope:
-            scope.set_regularizer(tf.contrib.layers.l2_regularizer(scale=FLAGS.reg_scale))
-            cell_ = tf.contrib.rnn.MultiRNNCell([super(self).define_cell() for _ in range(args.num_layers_d)], state_is_tuple = True)
-            
+            scope.set_regularizer(tf.contrib.layers.l2_regularizer(scale=args.scale))
+            cell_ = tf.contrib.rnn.MultiRNNCell([define_cell(args.gen_rnn_size, args.keep_prob) for _ in range(args.num_layers_g)], state_is_tuple = True)
+     
             state_ = cell_.zero_state(batch_size=args.batch_size, dtype=tf.float32)
-            self.outputs = []
+            outputs = []
             for t_ in range(args.max_time_step):
                 if t_ != 0:
                     scope.reuse_variables()
 
-                rnn_input_ = tf.layers.dense(attribute, args.rnn_input_size, tf.nn.relu, name="RNN_INPUT_DENSE")
+                rnn_input_ = tf.layers.dense(attribute, args.gen_rnn_input_size, tf.nn.relu, name="RNN_INPUT_DENSE")
+                _ = tf.layers.dense(x, args.gen_rnn_input_size, tf.nn.relu, name="RNN_PRE_INPUT_DENSE")
                 rnn_output_, state_ = cell_(rnn_input_, state_)
                 output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
-                self.outputs.append(output_)
-
+                outputs.append(output_)
+            self.outputs = tf.transpose(tf.stack(outputs), (1,0,2))
             scope.reuse_variables()
 
             ##pre training
             state_ = cell_.zero_state(batch_size=args.batch_size, dtype=tf.float32)
-            self.pre_train_outputs = []
+            pre_train_outputs = []
             for t_ in range(args.max_time_step):
                 if t_ != 0:
                     scope.reuse_variables()
 
-                rnn_input_ = tf.layers.dense(x, args.rnn_input_size, tf.nn.relu, name="RNN_INPUT_DENSE")
-                rnn_output_, state_ = call_(rnn_input_, state)
+                rnn_input_ = tf.layers.dense(x[:,t_,:], args.gen_rnn_input_size, tf.nn.relu, name="RNN_PRE_INPUT_DENSE")
+                rnn_output_, state_ = cell_(rnn_input_, state_)
                 output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
-                self.pre_train_outputs.append(output_)
-            
+                pre_train_outputs.append(output_)
+            self.pre_train_outputs = tf.transpose(tf.stack(pre_train_outputs), (1,0,2)) 
             reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
             self.reg_loss = args.reg_constant * sum(reg_losses)
     
@@ -48,32 +49,49 @@ class Generator(module):
     def _logits(self):
         return self.outputs
 
-class Discriminator(module):
+class Discriminator(object):
     def __init__(self, args, name="Discriminator"):
         self.name = name
         self.args = args
 
-    def _logits(self, x, reuse=False) as scope:
-        with tf.variable_scope(self.name) as scope():
-            if reuse:
-                scope.reuse_variables()
+    def _logits(self, x, y):
+        with tf.variable_scope(self.name) as scope:
 
-            fw = tf.contrib.rnn.MultiRNNCell([super(self).define_cell() for _ in range(self.args.num_layers_d)], state_is_tuple=True)
-            bw = tf.contrib.rnn.MultiRNNCell([super(self).define_cell() for _ in range(self.args.num_layers_d)], state_is_tuple=True)
-            rnn_output, _, _ = tf.nn.bidirectional_dynamic_rnn(fw,
+            fw = tf.contrib.rnn.MultiRNNCell([define_cell(self.args.dis_rnn_size, self.args.keep_prob) for _ in range(self.args.num_layers_d)], state_is_tuple=True)
+            bw = tf.contrib.rnn.MultiRNNCell([define_cell(self.args.dis_rnn_size, self.args.keep_prob) for _ in range(self.args.num_layers_d)], state_is_tuple=True)
+            rnn_output, state = tf.nn.bidirectional_dynamic_rnn(fw,
                                             bw,
                                             x,
                                             initial_state_fw=fw.zero_state(batch_size=self.args.batch_size, dtype=tf.float32),
                                             initial_state_bw=bw.zero_state(batch_size=self.args.batch_size, dtype=tf.float32), 
                                             dtype=tf.float32,
-                                            swap_memory=True)
+                                            swap_memory = True)
             
             outputs = [] 
-            for t_ in nange(self.args.max_time_step):
-                if != 0:
+            for t_ in range(self.args.max_time_step):
+                if t_ != 0:
                     scope.reuse_variables()
 
                 outputs.append(tf.layers.dense(tf.concat([rnn_output[0][:,t_,:], rnn_output[1][:,t_,:]], axis=-1), 1, name="RNN_OUTPUT_DENSE"))
-            logits = tf.transpose(tf.stack(outputs), (1,0,2))
-        return logits
+            x_logits = tf.transpose(tf.stack(outputs), (1,0,2))
+        
+            scope.reuse_variables()
+
+            rnn_output, state = tf.nn.bidirectional_dynamic_rnn(fw,
+                                                                bw,
+                                                                y,
+                                                                initial_state_fw=fw.zero_state(batch_size=self.args.batch_size, dtype=tf.float32),
+                                                                initial_state_bw=bw.zero_state(batch_size=self.args.batch_size, dtype=tf.float32),
+                                                                dtype=tf.float32,
+                                                                swap_memory=True)
+            outputs = []
+            for t_ in range(self.args.max_time_step):
+                if t_ != 0:
+                    scope.reuse_variables()
+
+                outputs.append(tf.layers.dense(tf.concat([rnn_output[0][:,t_,:],rnn_output[1][:,t_,:]], axis=-1), 1, name="RNN_OUTPUT_DENSE"))
+            y_logits = tf.transpose(tf.stack(outputs), (1,0,2))
+
+            return x_logits, y_logits
+
     

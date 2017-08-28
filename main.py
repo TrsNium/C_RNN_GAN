@@ -18,6 +18,14 @@ if __name__ == "__main__":
     parser.add_argument("--pre_train_path", dest="pre_train_path", type=str, default="./saved_pre_train/")
     parser.add_argument("--max_time_step_num", dest="max_time_step_num", type=int, default=10)
     parser.add_argument("--train_path", dest="train_path", type=str, default="./train_path/")
+    parser.add_argument("--scale", dest="scale", type=float, default=1.)
+    parser.add_argument("--num_layers_g", dest="num_layers_g", type=int, default=2)
+    parser.add_argument("--num_layers_d", dest="num_layers_d", type=int, default=2)
+    parser.add_argument("--gen_rnn_size", dest="gen_rnn_size", type=int, default=512)
+    parser.add_argument("--dis_rnn_size", dest="dis_rnn_size", type=int, default=512)
+    parser.add_argument("--keep_prob", dest="keep_prob", type=float, default=0.2)
+    parser.add_argument("--gen_rnn_input_size", dest="gen_rnn_input_size", type=int, default=128)
+    parser.add_argument("--reg_constant", dest="reg_constant", type=float, default=0.5)
     args = parser.parse_args()
 
     if not os.path.exists(args.train_path):
@@ -30,5 +38,5 @@ if __name__ == "__main__":
         os.mkdir("./logs/")
 
     model_ = model(args) 
-    if args.train():
+    if args.train:
         model_.train()
