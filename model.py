@@ -51,9 +51,14 @@ class model():
                 print("started pre-training")
                 saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope="Generater"))
                 for itr in range(self.args.pretrain_itrs):
-                    pass
+                    inputs_, labels_ = mk_pretrain_batch(self.args.max_time_step_num)
+                    loss_ = 0.
+                    for step in range(self.args.max_time_step_num):
+                        loss, _sess.run([self.p_g_loss, optimizer_g_p], feed_dict={self.pre_train_inputs:inputs_[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:], self.pre_train_labels:labels_[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]})
+                        loss_ += loss
 
-                saver_.save(sess, self.args.pretrain_path+"model.ckpt")
+                    if itr % 100 == 0:print(loss_/self.args.pretrain_itrs)
+                    if itr % 1000 == 0:saver_.save(sess, self.args.pretraining_path)
                 print("finished pre-training")
             elif self.args.pretraining and self.pretraining_done:
                 if not os.path.exists(self.args.pretrain_path):
