@@ -24,7 +24,8 @@ class Generator():
                 rnn_output_, state_ = cell_(rnn_input_, self.state_)
                 output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
                 outputs.append(output_)
-        
+       
+            self.p_state = self.state_
             self.outputs = tf.transpose(tf.stack(outputs), (1,0,2))
             scope.reuse_variables()
 

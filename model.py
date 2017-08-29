@@ -15,12 +15,11 @@ class model():
         
 
         #pre training
-        gen = Generator(args, self.pre_train_inputs, self.atribute_inputs)
+        self.gen = Generator(args, self.pre_train_inputs, self.atribute_inputs)
         self.p_g_loss, self.p_state = gen._pre_train(self.pre_train_labels)
 
         #train GAN
         self.fake, self.f_state = gen._logits()
-        print(self.fake.get_shape().as_list())
         dis = Discriminator(args)
         dis_fake, dis_real = dis._logits(self.fake, self.real)
 
@@ -50,12 +49,28 @@ class model():
             if self.args.pretraining and not self.args.pretraining_done:
                 print("started pre-training")
                 saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope="Generater"))
+                
+                feches = {
+                    "loss": self.p_g_loss,
+                    "optimizer": optimizer_g_p,
+                    "final_state_" = self.p_state
+                }
+
                 for itr in range(self.args.pretrain_itrs):
                     inputs_, labels_ = mk_pretrain_batch(self.args.max_time_step_num)
                     loss_ = 0.
+                    state_ = sess.run(self.gen.state_)
                     for step in range(self.args.max_time_step_num):
-                        loss, _sess.run([self.p_g_loss, optimizer_g_p], feed_dict={self.pre_train_inputs:inputs_[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:], self.pre_train_labels:labels_[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]})
-                        loss_ += loss
+                        feed_dict ={}
+                        for i, (c, h) in enumerate(self.gen.state_):
+                            feed_dict[c] = state[i].c
+                            feed_dict[h] = state[i].h
+
+                        feed_dict[self.pre_train_inputs] = inputs_[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
+                        feed_dict[self.pre_train_labels] = labels_[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
+                        vals = sess.run(feches, feed_dict)    
+                        state_ = vals["final_state_"]
+                        loss_ += vals["loss"]
 
                     if itr % 100 == 0:print(loss_/self.args.pretrain_itrs)
                     if itr % 1000 == 0:saver_.save(sess, self.args.pretraining_path)
