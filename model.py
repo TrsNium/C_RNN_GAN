@@ -16,10 +16,10 @@ class model():
 
         #pre training
         self.gen = Generator(args, self.pre_train_inputs, self.atribute_inputs)
-        self.p_g_loss, self.p_state = gen._pre_train(self.pre_train_labels)
+        self.p_g_loss, self.p_state = self.gen._pre_train(self.pre_train_labels)
 
         #train GAN
-        self.fake, self.f_state = gen._logits()
+        self.fake, self.f_state = self.gen._logits()
         dis = Discriminator(args)
         dis_fake, dis_real = dis._logits(self.fake, self.real)
 
@@ -53,7 +53,7 @@ class model():
                 feches = {
                     "loss": self.p_g_loss,
                     "optimizer": optimizer_g_p,
-                    "final_state_" = self.p_state
+                    "final_state_": self.p_state
                 }
 
                 for itr in range(self.args.pretrain_itrs):
@@ -83,10 +83,6 @@ class model():
                 saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope='Generater'))
                 saver_.restore(sess, self.args.pretrain_path)
                 print("finished restoring check point.")                
-
-            fetches = {
-            
-            }
             
             saver = tf.train.Saver(tf.global_variables())
             for itr_ in range(self.args.train_itrs):
@@ -100,9 +96,9 @@ class model():
                         feed_dict[h] = state_[i].h
                     
                     feed_dict[self.real] = labels[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
-                    feed_dict[self.atribute_inputs] = atribute_inputs
-                    g_loss_, state_, _ = sess.run([self.g_loss, self.gen.final_state, optimizer_g], feed_dict})
-                    d_loss_, _ = sess.run([self.d_loss, optimizer_d], feed_dict})
+                    feed_dict[self.atribute_inputs] = atribute
+                    g_loss_, state_, _ = sess.run([self.g_loss, self.gen.final_state, optimizer_g], feed_dict)
+                    d_loss_, _ = sess.run([self.d_loss, optimizer_d], feed_dict)
                     g_loss += g_loss_
                     d_loss += d_loss_
                     

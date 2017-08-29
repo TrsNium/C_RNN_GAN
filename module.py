@@ -51,7 +51,7 @@ class Generator():
         return loss, self.p_state
 
     def _logits(self):
-        return self.outputs, self.state
+        return self.outputs, self.state_
 
 class Discriminator(object):
     def __init__(self, args, name="Discriminator"):
