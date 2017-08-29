@@ -63,8 +63,8 @@ class model():
                     for step in range(self.args.max_time_step_num):
                         feed_dict ={}
                         for i, (c, h) in enumerate(self.gen.state_):
-                            feed_dict[c] = state[i].c
-                            feed_dict[h] = state[i].h
+                            feed_dict[c] = state_[i].c
+                            feed_dict[h] = state_[i].h
 
                         feed_dict[self.pre_train_inputs] = inputs_[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
                         feed_dict[self.pre_train_labels] = labels_[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
@@ -84,23 +84,33 @@ class model():
                 saver_.restore(sess, self.args.pretrain_path)
                 print("finished restoring check point.")                
 
+            fetches = {
+            
+            }
+            
             saver = tf.train.Saver(tf.global_variables())
             for itr_ in range(self.args.train_itrs):
                 g_loss, d_loss = [0., 0.]
                 labels, atribute = mk_batch(self.args.max_time_step_num)
+                state_ = sess.run(self.gen.state_)
                 for step in range(self.args.max_time_step_num):
-                    labels_ = labels[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
-                    g_loss_, _ = sess.run([self.g_loss, optimizer_g], feed_dict={self.real:labels_, self.atribute_inputs:atribute})
-                    d_loss_, _ = sess.run([self.d_loss, optimizer_d], feed_dict={self.real:labels_, self.atribute_inputs:atribute})
+                    feed_dict = {}
+                    for i, (c, h) in enumerate(self.gen.state_):
+                        feed_dict[c] = state_[i].c
+                        feed_dict[h] = state_[i].h
+                    
+                    feed_dict[self.real] = labels[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
+                    feed_dict[self.atribute_inputs] = atribute_inputs
+                    g_loss_, state_, _ = sess.run([self.g_loss, self.gen.final_state, optimizer_g], feed_dict})
+                    d_loss_, _ = sess.run([self.d_loss, optimizer_d], feed_dict})
                     g_loss += g_loss_
                     d_loss += d_loss_
                     
                 g_loss /= self.args.max_time_step_num
                 d_loss /= self.args.max_time_step_num
                 if itr_ % 100 == 0:
-                    #train_graph.add_summary(summary, itr_)
                     print(itr_, ":   g_loss:", g_loss, "   d_loss:", d_loss)
-
+                
                 if itr_ % 1000 == 0:
                     saver.save(sess, self.args.train_path+"model.ckpt")
                     print("-------------------saved model---------------------")
