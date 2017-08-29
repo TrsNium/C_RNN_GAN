@@ -25,7 +25,7 @@ class Generator():
                 output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
                 outputs.append(output_)
        
-            self.p_state = self.state_
+            self.final_state = self.state_
             self.outputs = tf.transpose(tf.stack(outputs), (1,0,2))
             scope.reuse_variables()
 
@@ -41,7 +41,7 @@ class Generator():
                 output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
                 pre_train_outputs.append(output_)
 
-            self.final_state = self.state_
+            self.p_state = self.state_
             self.pre_train_outputs = tf.transpose(tf.stack(pre_train_outputs), (1,0,2)) 
             reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
             self.reg_loss = args.reg_constant * sum(reg_losses)
