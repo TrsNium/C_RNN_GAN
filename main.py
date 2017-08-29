@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", dest="batch_size", type=int, default=10)
     parser.add_argument("--max_time_step", dest="max_time_step", type=int, default=200)
     parser.add_argument("--vocab_size", dest="vocab_size", type=int, default=128)
-    parser.add_argument("--pre_train_path", dest="pre_train_path", type=str, default="./saved_pre_train/")
+    parser.add_argument("--pre_train_path", dest="pre_train_path", type=str, default="./saved_pre_train/model.ckpt")
     parser.add_argument("--max_time_step_num", dest="max_time_step_num", type=int, default=10)
     parser.add_argument("--train_path", dest="train_path", type=str, default="./train_path/")
     parser.add_argument("--scale", dest="scale", type=float, default=1.)

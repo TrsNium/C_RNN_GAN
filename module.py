@@ -8,7 +8,7 @@ def define_cell(rnn_size, keep_prob):
     return cell_
 
 class Generator():
-    def __init__(self, args, x=None, attribute=None, name="Genenator"):
+    def __init__(self, args, x=None, attribute=None, name="Generator"):
         with tf.variable_scope(name) as scope:
             scope.set_regularizer(tf.contrib.layers.l2_regularizer(scale=args.scale))
             cell_ = tf.contrib.rnn.MultiRNNCell([define_cell(args.gen_rnn_size, args.keep_prob) for _ in range(args.num_layers_g)])

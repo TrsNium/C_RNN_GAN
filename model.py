@@ -48,7 +48,7 @@ class model():
         
             if self.args.pretraining and not self.args.pretraining_done:
                 print("started pre-training")
-                saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope="Generater"))
+                saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope="Generator"))
                 
                 feches = {
                     "loss": self.p_g_loss,
@@ -72,16 +72,16 @@ class model():
                         state_ = vals["final_state_"]
                         loss_ += vals["loss"]
 
-                    if itr % 100 == 0:print(loss_/self.args.pretrain_itrs)
-                    if itr % 1000 == 0:saver_.save(sess, self.args.pretraining_path)
+                    if itr % 100 == 0:print("itr", itr, "     loss:",loss_/self.args.pretrain_itrs)
+                    if itr % 1000 == 0:saver_.save(sess, self.args.pre_train_path)
                 print("finished pre-training")
-            elif self.args.pretraining and self.pretraining_done:
-                if not os.path.exists(self.args.pretrain_path):
+            elif self.args.pretraining and self.pre_train_done:
+                if not os.path.exists(self.args.pre_train_path):
                     print("not exits pretrain check point! damn shit byebye;)")
                     return
 
-                saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope='Generater'))
-                saver_.restore(sess, self.args.pretrain_path)
+                saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope='Generator'))
+                saver_.restore(sess, self.args.pre_train_path)
                 print("finished restoring check point.")                
             
             saver = tf.train.Saver(tf.global_variables())
