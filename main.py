@@ -7,7 +7,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", dest="lr", type=float, default= 0.002)
     parser.add_argument("--train", dest="train", type=bool, default=True)
     parser.add_argument("--train_itr", dest="train_itrs", type=int, default=1000)
-    parser.add_argument("--pretraining", dest="pretraining", type=bool, default=False)
+    parser.add_argument("--pretraining", dest="pretraining", type=bool, default=True)
     parser.add_argument("--pretraining_done", dest="pretraining_done", type=bool, default=False)
     parser.add_argument("--fs", dest="fs", type=int, default=100)
     parser.add_argument("--atribute_size", dest="atribute_size", type=int, default=3)
@@ -26,7 +26,12 @@ if __name__ == "__main__":
     parser.add_argument("--keep_prob", dest="keep_prob", type=float, default=0.2)
     parser.add_argument("--gen_rnn_input_size", dest="gen_rnn_input_size", type=int, default=128)
     parser.add_argument("--reg_constant", dest="reg_constant", type=float, default=0.5)
+    parser.add_argument("--atribute_inputs", dest="atribute_inputs", type=list, default=[0.6,0,0.4])
+    parser.add_argument("--input_norm", dest="input_norm", type=bool, default=False)
     args = parser.parse_args()
+
+    if not os.path.exists("generated_mid"):
+        os.mkdir("generated_mid")
 
     if not os.path.exists(args.train_path):
         os.mkdir(args.train_path)
@@ -40,3 +45,5 @@ if __name__ == "__main__":
     model_ = model(args) 
     if args.train:
         model_.train()
+    else:
+        model_.generate()

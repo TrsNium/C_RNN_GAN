@@ -87,7 +87,7 @@ def mk_batch_func_not_pre_train(batch_size, time_step, fs=100):
         for data in atribute_datas:
             merged_data.append(dir[i]+"/"+data)
     
-    def mk_batch_func(max_time_step_num):
+    def mk_batch_func(max_time_step_num, norm=True):
         r = []
         atribute = []
         for _ in range(batch_size):
@@ -99,7 +99,7 @@ def mk_batch_func_not_pre_train(batch_size, time_step, fs=100):
                 except:
                     continue
             
-            p_r /= np.max(p_r)
+            p_r = p_r/np.max(p_r) if norm else p_r
             r.append(p_r[:,:time_step*max_time_step_num])
             init_ =  [0]*atribute_size
             init_[dir.index("/".join(path.split("/")[:2]))] = 1
@@ -124,7 +124,7 @@ def mk_batch_func_pre_train(batch_size, time_step, fs=100):
         for data in atribute_datas:
             merged_data.append(dir[i]+"/"+data)
 
-    def mk_batch_func(max_time_step_num):
+    def mk_batch_func(max_time_step_num, norm=True):
         x = []
         label = []
         for _ in range(batch_size):
@@ -136,7 +136,7 @@ def mk_batch_func_pre_train(batch_size, time_step, fs=100):
                 except:
                     continue
 
-            p_r /= np.max(p_r)
+            p_r = p_r/np.max(p_r) if norm else p_r
             x.append(p_r[:,:time_step*max_time_step_num])
             label.append(p_r[:,1:time_step*max_time_step_num+1])
         return np.transpose(np.array(x), (0,2,1)), np.transpose(np.array(label), (0,2,1))

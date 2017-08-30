@@ -58,7 +58,7 @@ class model():
                 }
 
                 for itr in range(self.args.pretrain_itrs):
-                    inputs_, labels_ = mk_pretrain_batch(self.args.max_time_step_num)
+                    inputs_, labels_ = mk_pretrain_batch(self.args.max_time_step_num, self.args.input_norm)
                     loss_ = 0.
                     state_ = sess.run(self.gen.state_)
                     for step in range(self.args.max_time_step_num):
@@ -88,7 +88,7 @@ class model():
             saver = tf.train.Saver(tf.global_variables())
             for itr_ in range(self.args.train_itrs):
                 g_loss, d_loss = [0., 0.]
-                labels, atribute = mk_batch(self.args.max_time_step_num)
+                labels, atribute = mk_batch(self.args.max_time_step_num, self.args.input_norm)
                 state_ = sess.run(self.gen.state_)
                 for step in range(self.args.max_time_step_num):
                     feed_dict = {}
@@ -128,9 +128,9 @@ class model():
                     feed_dict[c] = state_[i].c
                     feed_dict[h] = state_[i].h
                 
-                feed_dict[self.atribute_inputs] = self.args.atribute_inputs
+                feed_dict[self.atribute_inputs] = np.array(self.args.atribute_inputs*self.args.batch_size)
                 fake_, state_ = sess.run([self.fake, self.gen.final_state], feed_dict)
                 results.append(fake_)
             results = np.concatenate(results, axis=-1)
-            piano_roll_to_pretty_midi(results, self.args.fs, 0)    
+            [piano_roll_to_pretty_midi(result, self.args.fs, 0).write("./generated_mid/{}.mid") for i, result in enumerate(results)]    
             print("Done check out ./generated_mid/*.mid" )
