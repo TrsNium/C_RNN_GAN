@@ -9,8 +9,24 @@ def read_midi_as_piano_roll(fn, fs):
     p_r = p_m.get_piano_roll(fs)
     return np.array(p_r)
 
-def mk_batch_func_not_pre_train(batch_size, time_step, fs=100):
+def mk_index():
     dir = ["data/"+dir for dir in os.listdir("data") if re.match("genre-", dir)]
+    content = "\n".join(dir)
+    with open("data/index.txt", "w") as fs:
+        fs.write(content)
+
+def read_index():
+    with open("data/index.txt", "r") as fs:
+        lines = fs.readlines()
+    return [line.split("\n")[0] for line in lines]
+
+def mk_batch_func_not_pre_train(batch_size, time_step, fs=100):
+    if not os.path.exists("data/index.txt"):
+        mk_index()
+        dir = read_index()
+    else:
+        dir = read_index()
+
     atribute_data_path = [path for i,path in enumerate(list(map(os.listdir,dir)))]
     atribute_size = len(dir)
     
@@ -42,7 +58,12 @@ def mk_batch_func_not_pre_train(batch_size, time_step, fs=100):
     return mk_batch_func
     
 def mk_batch_func_pre_train(batch_size, time_step, fs=100):
-    dir = ["data/"+dir for dir in os.listdir("data") if re.match("genre-", dir)]
+    if not os.path.exists("data/index.txt"):
+        mk_index()
+        dir = read_index()
+    else:
+        dir = read_index()
+    
     atribute_data_path = [path for i,path in enumerate(list(map(os.listdir,dir)))]
     atribute_size = len(dir)
     
