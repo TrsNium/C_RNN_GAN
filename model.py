@@ -1,7 +1,8 @@
 import tensorflow as tf
 from module import *
 import os
-from util import mk_batch_func_not_pre_train, mk_batch_func_pre_train
+from util import *
+import numpy as np
 
 class model():
     def __init__(self, args):
@@ -117,7 +118,19 @@ class model():
         config.log_device_placement = True
         with tf.Session(config=config) as sess:
             saver = tf.train.Saver(tf.global_variables())
-            saver.restore(sess, self.args.train_path)
+            saver.restore(sess, self.args.train_path+"model.ckpt")
 
-            ####################生成するコードを書いたり書かなかったりウェ書いたり書かなかったりウェイよ  
-
+            results = []
+            state_ = sess.run(self.gen.state_)
+            for step in range(self.args.max_time_step_num):
+                feed_dict={}
+                for i, (c, h) in enumerate(self.gen.state_):
+                    feed_dict[c] = state_[i].c
+                    feed_dict[h] = state_[i].h
+                
+                feed_dict[self.atribute_inputs] = self.args.atribute_inputs
+                fake_, state_ = sess.run([self.fake, self.gen.final_state], feed_dict)
+                results.append(fake_)
+            results = np.concatenate(results, axis=-1)
+            piano_roll_to_pretty_midi(results, self.args.fs, 0)    
+            print("Done check out ./generated_mid/*.mid" )
