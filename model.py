@@ -3,6 +3,9 @@ from module import *
 import os
 from util import *
 import numpy as np
+import warnings
+
+
 
 class model():
     def __init__(self, args):
@@ -47,7 +50,7 @@ class model():
             merged_summary = tf.summary.merge_all()
             sess.run(tf.global_variables_initializer())
         
-            if self.args.pretraining and not self.args.pretraining_done:
+            if self.args.pretraining and not self.args.pre_train_done:
                 print("started pre-training")
                 saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope="Generator"))
                 
@@ -127,10 +130,12 @@ class model():
                 for i, (c, h) in enumerate(self.gen.state_):
                     feed_dict[c] = state_[i].c
                     feed_dict[h] = state_[i].h
-                
-                feed_dict[self.atribute_inputs] = np.array(self.args.atribute_inputs*self.args.batch_size)
+             
+                feed_dict[self.atribute_inputs] = np.array([self.args.atribute_inputs]*self.args.batch_size)
                 fake_, state_ = sess.run([self.fake, self.gen.final_state], feed_dict)
                 results.append(fake_)
-            results = np.concatenate(results, axis=-1)
-            [piano_roll_to_pretty_midi(result, self.args.fs, 0).write("./generated_mid/{}.mid") for i, result in enumerate(results)]    
+            results = np.transpose(np.concatenate(results, axis=1), (0,2,1)).astype(np.int16) 
+            print(results.shape)
+            warnings.filterwarnings("ignore")
+            [piano_roll_to_pretty_midi(results[i,:,:1000], self.args.fs, 0).write("midi_{}.mid".format(i)) for i in range(self.args.batch_size)]    
             print("Done check out ./generated_mid/*.mid" )
