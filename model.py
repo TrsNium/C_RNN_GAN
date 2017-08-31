@@ -32,7 +32,7 @@ class model():
         tf.summary.scalar("generator_loss", self.g_loss)
 
     def train(self):
-        optimizer_g_p = tf.train.AdamOptimizer(self.args.lr).minimize(self.p_g_loss)
+        optimizer_g_p = tf.train.GradientDescentOptimizer(self.args.lr).minimize(self.p_g_loss)
         optimizer_g = tf.train.AdamOptimizer(self.args.lr).minimize(self.g_loss)
         optimizer_d = tf.train.AdamOptimizer(self.args.lr).minimize(self.d_loss)
         
@@ -76,7 +76,7 @@ class model():
                     if itr % 100 == 0:print("itr", itr, "     loss:",loss_/self.args.pretrain_itrs)
                     if itr % 1000 == 0:saver_.save(sess, self.args.pre_train_path)
                 print("finished pre-training")
-            elif self.args.pretraining and self.pre_train_done:
+            elif self.args.pretraining and self.args.pre_train_done:
                 if not os.path.exists(self.args.pre_train_path):
                     print("not exits pretrain check point! damn shit byebye;)")
                     return
