@@ -92,10 +92,11 @@ def mk_batch_func_not_pre_train(batch_size, time_step, fs=100):
         atribute = []
         for _ in range(batch_size):
             p_r = None
-            while p_r == None:
+            while True:
                 try:
                     path = random.choice(merged_data)
                     p_r = read_midi_as_piano_roll(path, fs)
+                    break
                 except:
                     continue
             
@@ -129,10 +130,11 @@ def mk_batch_func_pre_train(batch_size, time_step, fs=100):
         label = []
         for _ in range(batch_size):
             p_r = None
-            while p_r == None:
+            while True:
                 try:
                     path = random.choice(merged_data)
                     p_r = read_midi_as_piano_roll(path, fs)
+                    break
                 except:
                     continue
 
@@ -143,3 +145,5 @@ def mk_batch_func_pre_train(batch_size, time_step, fs=100):
 
     return mk_batch_func
 
+def n_sigmoid(x):
+    return 1/1-np.exp(-x)

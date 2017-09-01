@@ -77,7 +77,7 @@ class model():
                         loss_ += vals["loss"]
 
                     if itr % 100 == 0:print("itr", itr, "     loss:",loss_/self.args.pretrain_itrs)
-                    if itr % 1000 == 0:saver_.save(sess, self.args.pre_train_path)
+                    if itr % 200 == 0:saver_.save(sess, self.args.pre_train_path)
                 print("finished pre-training")
             elif self.args.pretraining and self.args.pre_train_done:
                 if not os.path.exists(self.args.pre_train_path):
@@ -105,13 +105,13 @@ class model():
                     d_loss_, _ = sess.run([self.d_loss, optimizer_d], feed_dict)
                     g_loss += g_loss_
                     d_loss += d_loss_
-                    
+                    #print(sess.run(self.fake, feed_dict))
                 g_loss /= self.args.max_time_step_num
                 d_loss /= self.args.max_time_step_num
                 if itr_ % 100 == 0:
                     print(itr_, ":   g_loss:", g_loss, "   d_loss:", d_loss)
                 
-                if itr_ % 1000 == 0:
+                if itr_ % 200 == 0:
                     saver.save(sess, self.args.train_path+"model.ckpt")
                     print("-------------------saved model---------------------")
 
@@ -137,5 +137,5 @@ class model():
             results = np.transpose(np.concatenate(results, axis=1), (0,2,1)).astype(np.int16) 
             print(results.shape)
             warnings.filterwarnings("ignore")
-            [piano_roll_to_pretty_midi(results[i,:,:1000], self.args.fs, 0).write("midi_{}.mid".format(i)) for i in range(self.args.batch_size)]    
+            [piano_roll_to_pretty_midi(results[i,:,:1000], self.args.fs, 0).write("./generated_mid/midi_{}.mid".format(i)) for i in range(self.args.batch_size)]    
             print("Done check out ./generated_mid/*.mid" )
