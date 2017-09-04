@@ -134,8 +134,9 @@ class model():
                 feed_dict[self.atribute_inputs] = np.array([self.args.atribute_inputs]*self.args.batch_size)
                 fake_, state_ = sess.run([self.fake, self.gen.final_state], feed_dict)
                 results.append(fake_)
+            print(np.concatenate(results, axis=1).shape)
             results = np.transpose(np.concatenate(results, axis=1), (0,2,1)).astype(np.int16) 
             print(results.shape)
             warnings.filterwarnings("ignore")
-            [piano_roll_to_pretty_midi(results[i,:,:1000], self.args.fs, 0).write("./generated_mid/midi_{}.mid".format(i)) for i in range(self.args.batch_size)]    
+            [piano_roll_to_pretty_midi(results[i,:,:1000]*127, self.args.fs, 0).write("./generated_mid/midi_{}.mid".format(i)) for i in range(self.args.batch_size)]    
             print("Done check out ./generated_mid/*.mid" )

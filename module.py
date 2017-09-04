@@ -22,7 +22,7 @@ class Generator():
                 rnn_input_ = tf.layers.dense(attribute, args.gen_rnn_input_size, tf.nn.relu, name="RNN_INPUT_DENSE")
                 _ = tf.layers.dense(x, args.gen_rnn_input_size, tf.nn.relu, name="RNN_PRE_INPUT_DENSE")
                 rnn_output_, state_ = cell_(rnn_input_, self.state_)
-                output_ = tf.nn.sigmoid(tf.clip_by_value(tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE"), 1e-10, 100.))
+                output_ = tf.nn.sigmoid(tf.clip_by_value(tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE"), -100, 100.))
                 outputs.append(output_)
        
             self.final_state = self.state_
@@ -38,7 +38,7 @@ class Generator():
 
                 rnn_input_ = tf.layers.dense(x[:,t_,:], args.gen_rnn_input_size, tf.nn.relu, name="RNN_PRE_INPUT_DENSE")
                 rnn_output_, state_ = cell_(rnn_input_, self.state_)
-                output_ = tf.sigmoid(tf.clip_by_value(tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE"), 1e-10, 100.))
+                output_ = tf.sigmoid(tf.clip_by_value(tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE"), -100, 100.))
                 pre_train_outputs.append(output_)
 
             self.p_state = self.state_
