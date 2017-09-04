@@ -27,8 +27,9 @@ class model():
         dis = Discriminator(args)
         dis_fake, dis_real = dis._logits(self.fake, self.real)
 
-        self.d_loss = tf.reduce_mean(tf.squared_difference(dis_real, tf.ones_like(dis_real))) + tf.reduce_mean(tf.squared_difference(dis_fake, tf.zeros_like(dis_fake)))
+        self.d_loss = tf.reduce_mean(-tf.log(tf.clip_by_value(dis_real, 1e-100000, 1.0)) - -tf.log(1 - tf.clip_by_value(dis_fake, 0.0, 1.0 - 1e-1000000)))
         self.g_loss = tf.reduce_mean(tf.squared_difference(dis_fake, tf.ones_like(dis_fake)))
+        self.g_loss_ = tf.reduce_mean(-tf.log(tf.clip_by_value(dis_real, 1e-1000000, 1.0)))
 
         tf.summary.scalar("pre_train_loss", self.p_g_loss)
         tf.summary.scalar("discriminator_loss", self.d_loss)
@@ -36,7 +37,7 @@ class model():
 
     def train(self):
         optimizer_g_p = tf.train.GradientDescentOptimizer(self.args.lr).minimize(self.p_g_loss)
-        optimizer_g = tf.train.AdamOptimizer(self.args.lr).minimize(self.g_loss)
+        optimizer_g = tf.train.AdamOptimizer(self.args.lr).minimize(self.g_loss_)
         optimizer_d = tf.train.AdamOptimizer(self.args.lr).minimize(self.d_loss)
         
         mk_pretrain_batch = mk_batch_func_pre_train(self.args.batch_size, self.args.max_time_step, self.args.fs)
@@ -101,14 +102,14 @@ class model():
                     
                     feed_dict[self.real] = labels[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
                     feed_dict[self.atribute_inputs] = atribute
-                    g_loss_, state_, _ = sess.run([self.g_loss, self.gen.final_state, optimizer_g], feed_dict)
+                    g_loss_, state_, _ = sess.run([self.g_loss_, self.gen.final_state, optimizer_g], feed_dict)
                     d_loss_, _ = sess.run([self.d_loss, optimizer_d], feed_dict)
                     g_loss += g_loss_
                     d_loss += d_loss_
                     #print(sess.run(self.fake, feed_dict))
                 g_loss /= self.args.max_time_step_num
                 d_loss /= self.args.max_time_step_num
-                if itr_ % 100 == 0:
+                if itr_ % 5 == 0:
                     print(itr_, ":   g_loss:", g_loss, "   d_loss:", d_loss)
                 
                 if itr_ % 200 == 0:
@@ -134,9 +135,9 @@ class model():
                 feed_dict[self.atribute_inputs] = np.array([self.args.atribute_inputs]*self.args.batch_size)
                 fake_, state_ = sess.run([self.fake, self.gen.final_state], feed_dict)
                 results.append(fake_)
-            print(np.concatenate(results, axis=1).shape)
+
             results = np.transpose(np.concatenate(results, axis=1), (0,2,1)).astype(np.int16) 
             print(results.shape)
-            warnings.filterwarnings("ignore")
+            print(np.argmax(results , axis=1))
             [piano_roll_to_pretty_midi(results[i,:,:1000]*127, self.args.fs, 0).write("./generated_mid/midi_{}.mid".format(i)) for i in range(self.args.batch_size)]    
             print("Done check out ./generated_mid/*.mid" )
