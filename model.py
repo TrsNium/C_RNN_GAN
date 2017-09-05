@@ -25,21 +25,21 @@ class model():
         #train GAN
         self.fake, self.f_state = self.gen._logits()
         dis = Discriminator(args)
-        dis_fake, dis_real = dis._logits(self.fake, self.real)
+        dis_fake, dis_real = dis._logits(self.fake, self.real*127) 
 
-        self.d_loss = tf.reduce_mean(-tf.log(tf.clip_by_value(dis_real, 1e-100000, 1.0)) - -tf.log(1 - tf.clip_by_value(dis_fake, 0.0, 1.0 - 1e-1000000)))
+        self.d_loss = tf.reduce_mean(-tf.log(tf.clip_by_value(dis_real, 1e-5, 1.0)) - tf.log(1 - tf.clip_by_value(dis_fake, 0.0, 1.0 - 1e-5)))
         self.g_loss = tf.reduce_mean(tf.squared_difference(dis_fake, tf.ones_like(dis_fake)))
-        self.g_loss_ = tf.reduce_mean(-tf.log(tf.clip_by_value(dis_real, 1e-1000000, 1.0)))
+        self.g_loss_ = tf.reduce_mean(-tf.log(tf.clip_by_value(dis_real, 1e-5, 1.0)))
 
         tf.summary.scalar("pre_train_loss", self.p_g_loss)
         tf.summary.scalar("discriminator_loss", self.d_loss)
-        tf.summary.scalar("generator_loss", self.g_loss)
+        tf.summary.scalar("generator_loss", self.g_loss_)
 
     def train(self):
         optimizer_g_p = tf.train.GradientDescentOptimizer(self.args.lr).minimize(self.p_g_loss)
-        optimizer_g = tf.train.AdamOptimizer(self.args.lr).minimize(self.g_loss_)
-        optimizer_d = tf.train.AdamOptimizer(self.args.lr).minimize(self.d_loss)
-        
+        optimizer_g = tf.train.GradientDescentOptimizer(self.args.lr).minimize(self.g_loss_)
+        optimizer_d = tf.train.GradientDescentOptimizer(self.args.lr).minimize(self.d_loss)
+         
         mk_pretrain_batch = mk_batch_func_pre_train(self.args.batch_size, self.args.max_time_step, self.args.fs)
         mk_batch = mk_batch_func_not_pre_train(self.args.batch_size, self.args.max_time_step, self.args.fs)
     
@@ -102,6 +102,7 @@ class model():
                     
                     feed_dict[self.real] = labels[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
                     feed_dict[self.atribute_inputs] = atribute
+                    
                     g_loss_, state_, _ = sess.run([self.g_loss_, self.gen.final_state, optimizer_g], feed_dict)
                     d_loss_, _ = sess.run([self.d_loss, optimizer_d], feed_dict)
                     g_loss += g_loss_
@@ -112,7 +113,7 @@ class model():
                 if itr_ % 5 == 0:
                     print(itr_, ":   g_loss:", g_loss, "   d_loss:", d_loss)
                 
-                if itr_ % 200 == 0:
+                if itr_ % 20 == 0:
                     saver.save(sess, self.args.train_path+"model.ckpt")
                     print("-------------------saved model---------------------")
 
@@ -138,6 +139,6 @@ class model():
 
             results = np.transpose(np.concatenate(results, axis=1), (0,2,1)).astype(np.int16) 
             print(results.shape)
-            print(np.argmax(results , axis=1))
-            [piano_roll_to_pretty_midi(results[i,:,:1000]*127, self.args.fs, 0).write("./generated_mid/midi_{}.mid".format(i)) for i in range(self.args.batch_size)]    
+            print(np.max(results , axis=-1))
+            [piano_roll_to_pretty_midi(results[i,:,:], self.args.fs, 0).write("./generated_mid/midi_{}.mid".format(i)) for i in range(self.args.batch_size)]    
             print("Done check out ./generated_mid/*.mid" )
