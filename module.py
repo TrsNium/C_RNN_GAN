@@ -19,10 +19,10 @@ class Generator():
                 if t_ != 0:
                     scope.reuse_variables()
 
-                rnn_input_ = tf.layers.dense(attribute, args.gen_rnn_input_size, tf.nn.relu, name="RNN_INPUT_DENSE")
+                rnn_input_ = tf.layers.dense(attribute[:,t_,:], args.gen_rnn_input_size, tf.nn.relu, name="RNN_INPUT_DENSE")
                 _ = tf.layers.dense(x, args.gen_rnn_input_size, tf.nn.relu, name="RNN_PRE_INPUT_DENSE")
                 rnn_output_, state_ = cell_(rnn_input_, self.state_)
-                output_ = tf.nn.sigmoid(tf.clip_by_value(tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE"), -10, 10.)) * 127
+                output_ = tf.nn.relu(tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE"))
                 outputs.append(output_)
        
             self.final_state = self.state_
@@ -38,7 +38,7 @@ class Generator():
 
                 rnn_input_ = tf.layers.dense(x[:,t_,:], args.gen_rnn_input_size, tf.nn.relu, name="RNN_PRE_INPUT_DENSE")
                 rnn_output_, state_ = cell_(rnn_input_, self.state_)
-                output_ = tf.sigmoid(tf.clip_by_value(tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE"), -10, 10.)) *127
+                output_ = tf.nn.relu(tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE"))
                 pre_train_outputs.append(output_)
 
             self.p_state = self.state_
@@ -47,7 +47,7 @@ class Generator():
             self.reg_loss = args.reg_constant * sum(reg_losses)
     
     def _pre_train(self, y):
-        loss = tf.reduce_mean(tf.squared_difference(self.pre_train_outputs, y*127)) + self.reg_loss
+        loss = tf.reduce_mean(tf.squared_difference(self.pre_train_outputs, y)) + self.reg_loss
         return loss, self.p_state
 
     def _logits(self):

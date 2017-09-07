@@ -4,7 +4,7 @@ import os
 from util import *
 import numpy as np
 import warnings
-
+import random
 
 
 class model():
@@ -15,7 +15,7 @@ class model():
         self.pre_train_inputs = tf.placeholder(tf.float32, [None, args.max_time_step, args.vocab_size], "pre_train_inputs")
         self.pre_train_labels = tf.placeholder(tf.float32, [None, args.max_time_step, args.vocab_size], "pre_train_labels")
         self.real = tf.placeholder(tf.float32, [None, args.max_time_step, args.vocab_size], "real_inputs")
-        self.atribute_inputs = tf.placeholder(tf.float32, [None, args.atribute_size])
+        self.atribute_inputs = tf.placeholder(tf.float32, [None, args.max_time_step, args.atribute_size+args.random_dim])
         
 
         #pre training
@@ -25,7 +25,7 @@ class model():
         #train GAN
         self.fake, self.f_state = self.gen._logits()
         dis = Discriminator(args)
-        dis_fake, dis_real = dis._logits(self.fake, self.real*127) 
+        dis_fake, dis_real = dis._logits(self.fake, self.real) 
 
         self.d_loss = tf.reduce_mean(-tf.log(tf.clip_by_value(dis_real, 1e-5, 1.0)) - tf.log(1 - tf.clip_by_value(dis_fake, 0.0, 1.0 - 1e-5)))
         self.g_loss = tf.reduce_mean(tf.squared_difference(dis_fake, tf.ones_like(dis_fake)))
@@ -100,8 +100,9 @@ class model():
                         feed_dict[c] = state_[i].c
                         feed_dict[h] = state_[i].h
                     
+                    atribute_ = np.array([[a+[random.random() for _ in range(self.args.random_dim)] for _ in range(self.args.max_time_step)] for a in atribute])
                     feed_dict[self.real] = labels[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
-                    feed_dict[self.atribute_inputs] = atribute
+                    feed_dict[self.atribute_inputs] = atribute_
                     
                     g_loss_, state_, _ = sess.run([self.g_loss_, self.gen.final_state, optimizer_g], feed_dict)
                     d_loss_, _ = sess.run([self.d_loss, optimizer_d], feed_dict)
@@ -133,7 +134,8 @@ class model():
                     feed_dict[c] = state_[i].c
                     feed_dict[h] = state_[i].h
              
-                feed_dict[self.atribute_inputs] = np.array([self.args.atribute_inputs]*self.args.batch_size)
+                atribute = np.array([[a+[random.random() for _ in range(self.args.random_dim)] for _ in range(self.args.max_time_step)] for a in [self.args.atribute_inputs]*self.args.batch_size])
+                feed_dict[self.atribute_inputs] = atribute
                 fake_, state_ = sess.run([self.fake, self.gen.final_state], feed_dict)
                 results.append(fake_)
 
@@ -142,3 +144,4 @@ class model():
             print(np.max(results , axis=-1))
             [piano_roll_to_pretty_midi(results[i,:,:], self.args.fs, 0).write("./generated_mid/midi_{}.mid".format(i)) for i in range(self.args.batch_size)]    
             print("Done check out ./generated_mid/*.mid" )
+            return np.transpose(results, (0,2,1))

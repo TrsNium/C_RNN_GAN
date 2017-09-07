@@ -96,17 +96,21 @@ def mk_batch_func_not_pre_train(batch_size, time_step, fs=100):
                 try:
                     path = random.choice(merged_data)
                     p_r = read_midi_as_piano_roll(path, fs)
+                    if max_time_step_num*time_step > p_r.shape[1]:
+                        print(p_r.shape)
+                        continue
                     break
                 except:
                     continue
             
-            p_r = p_r/np.max(p_r) if norm else p_r
+            p_r = p_r/np.max(p_r)*127 if norm else p_r
+
             r.append(p_r[:,:time_step*max_time_step_num])
             init_ =  [0]*atribute_size
             init_[dir.index("/".join(path.split("/")[:2]))] = 1
             atribute.append(init_)
     
-        return np.transpose(np.array(r),(0,2,1)), np.array(atribute)
+        return np.transpose(np.array(r),(0,2,1)), atribute
     
     return mk_batch_func
     
@@ -134,11 +138,14 @@ def mk_batch_func_pre_train(batch_size, time_step, fs=100):
                 try:
                     path = random.choice(merged_data)
                     p_r = read_midi_as_piano_roll(path, fs)
+                    if max_time_step_num*time_step > p_r.shape[1]:
+                        continue
                     break
                 except:
                     continue
 
-            p_r = p_r/np.max(p_r) if norm else p_r
+            p_r = p_r/np.max(p_r)*127 if norm else p_r
+
             x.append(p_r[:,:time_step*max_time_step_num])
             label.append(p_r[:,1:time_step*max_time_step_num+1])
         return np.transpose(np.array(x), (0,2,1)), np.transpose(np.array(label), (0,2,1))
