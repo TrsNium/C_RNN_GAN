@@ -103,7 +103,7 @@ def mk_batch_func_not_pre_train(batch_size, time_step, fs=100):
                 except:
                     continue
             
-            p_r = p_r/np.max(p_r)*127 if norm else p_r
+            p_r = p_r/np.max(p_r) if norm else p_r
 
             r.append(p_r[:,:time_step*max_time_step_num])
             init_ =  [0]*atribute_size
@@ -144,7 +144,7 @@ def mk_batch_func_pre_train(batch_size, time_step, fs=100):
                 except:
                     continue
 
-            p_r = p_r/np.max(p_r)*127 if norm else p_r
+            p_r = p_r/np.max(p_r) if norm else p_r
 
             x.append(p_r[:,:time_step*max_time_step_num])
             label.append(p_r[:,1:time_step*max_time_step_num+1])

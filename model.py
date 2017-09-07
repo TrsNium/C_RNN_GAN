@@ -136,12 +136,13 @@ class model():
              
                 atribute = np.array([[a+[random.random() for _ in range(self.args.random_dim)] for _ in range(self.args.max_time_step)] for a in [self.args.atribute_inputs]*self.args.batch_size])
                 feed_dict[self.atribute_inputs] = atribute
+                print(atribute)
                 fake_, state_ = sess.run([self.fake, self.gen.final_state], feed_dict)
                 results.append(fake_)
 
             results = np.transpose(np.concatenate(results, axis=1), (0,2,1)).astype(np.int16) 
             print(results.shape)
             print(np.max(results , axis=-1))
-            [piano_roll_to_pretty_midi(results[i,:,:], self.args.fs, 0).write("./generated_mid/midi_{}.mid".format(i)) for i in range(self.args.batch_size)]    
+            [piano_roll_to_pretty_midi(results[i,:,:]*127, self.args.fs, 0).write("./generated_mid/midi_{}.mid".format(i)) for i in range(self.args.batch_size)]    
             print("Done check out ./generated_mid/*.mid" )
             return np.transpose(results, (0,2,1))
