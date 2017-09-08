@@ -19,26 +19,30 @@ class model():
         
 
         #pre training
+        dis = Discriminator(args)
         self.gen = Generator(args, self.pre_train_inputs, self.atribute_inputs)
         self.p_g_loss, self.p_state = self.gen._pre_train(self.pre_train_labels)
-
+        p_d_logits = dis._logits(self.pre_train_labels, None, True, False)
+        self.p_d_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=p_d_logits, labels=tf.ones_like(p_d_logits)))
+        
         #train GAN
         self.fake, self.f_state = self.gen._logits()
-        dis = Discriminator(args)
-        dis_fake, dis_real = dis._logits(self.fake, self.real) 
+        dis_fake, dis_real = dis._logits(self.fake, self.real, reuse=True) 
+        dis_fake = tf.reshape(dis_fake, [-1, 1])
+        dis_real = tf.reshape(dis_real, [-1, 1])
 
-        self.d_loss = tf.reduce_mean(-tf.log(tf.clip_by_value(dis_real, 1e-5, 1.0)) - tf.log(1 - tf.clip_by_value(dis_fake, 0.0, 1.0 - 1e-5)))
-        self.g_loss = tf.reduce_mean(tf.squared_difference(dis_fake, tf.ones_like(dis_fake)))
-        self.g_loss_ = tf.reduce_mean(-tf.log(tf.clip_by_value(dis_real, 1e-5, 1.0)))
+        self.d_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_real, labels=tf.ones_like(dis_real)) + tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_fake, labels=tf.zeros_like(dis_fake)))
+        self.g_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=dis_fake, labels=tf.ones_like(dis_fake)))
 
-        tf.summary.scalar("pre_train_loss", self.p_g_loss)
+        #tf.summary.scalar("pre_train_loss", self.p_g_loss)
         tf.summary.scalar("discriminator_loss", self.d_loss)
-        tf.summary.scalar("generator_loss", self.g_loss_)
+        tf.summary.scalar("generator_loss", self.g_loss)
 
     def train(self):
         optimizer_g_p = tf.train.GradientDescentOptimizer(self.args.lr).minimize(self.p_g_loss)
-        optimizer_g = tf.train.GradientDescentOptimizer(self.args.lr).minimize(self.g_loss_)
-        optimizer_d = tf.train.GradientDescentOptimizer(self.args.lr).minimize(self.d_loss)
+        optimizer_d_p = tf.train.GradientDescentOptimizer(self.args.lr).minimize(self.p_d_loss)
+        optimizer_g = tf.train.GradientDescentOptimizer(self.args.lr).minimize(self.g_loss)
+        optimizer_d = tf.train.GradientDescentOptimizer(self.args.d_lr).minimize(self.d_loss)
          
         mk_pretrain_batch = mk_batch_func_pre_train(self.args.batch_size, self.args.max_time_step, self.args.fs)
         mk_batch = mk_batch_func_not_pre_train(self.args.batch_size, self.args.max_time_step, self.args.fs)
@@ -53,17 +57,20 @@ class model():
         
             if self.args.pretraining and not self.args.pre_train_done:
                 print("started pre-training")
-                saver_ = tf.train.Saver(tf.get_collection(tf.GraphKeys.VARIABLES, scope="Generator"))
+                saver_ = tf.train.Saver(tf.global_variables())
                 
                 feches = {
-                    "loss": self.p_g_loss,
-                    "optimizer": optimizer_g_p,
+                    "g_loss": self.p_g_loss,
+                    "d_loss": self.p_d_loss,
+                    "optimizer_g": optimizer_g_p,
+                    "optimizer_d": optimizer_d_p,
                     "final_state_": self.p_state
                 }
 
                 for itr in range(self.args.pretrain_itrs):
                     inputs_, labels_ = mk_pretrain_batch(self.args.max_time_step_num, self.args.input_norm)
-                    loss_ = 0.
+                    g_loss_ = 0.
+                    d_loss_ = 0.
                     state_ = sess.run(self.gen.state_)
                     for step in range(self.args.max_time_step_num):
                         feed_dict ={}
@@ -75,9 +82,10 @@ class model():
                         feed_dict[self.pre_train_labels] = labels_[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
                         vals = sess.run(feches, feed_dict)    
                         state_ = vals["final_state_"]
-                        loss_ += vals["loss"]
-
-                    if itr % 100 == 0:print("itr", itr, "     loss:",loss_/self.args.pretrain_itrs)
+                        g_loss_ += vals["g_loss"]
+                        d_loss_ += vals["d_loss"]
+                        
+                    if itr % 100 == 0:print("itr", itr, "     g_loss:",g_loss_/self.args.pretrain_itrs,"     d_loss:",d_loss_/self.args.pretrain_itrs)
                     if itr % 200 == 0:saver_.save(sess, self.args.pre_train_path)
                 print("finished pre-training")
             elif self.args.pretraining and self.args.pre_train_done:
@@ -104,8 +112,8 @@ class model():
                     feed_dict[self.real] = labels[:,step*self.args.max_time_step:(step+1)*self.args.max_time_step,:]
                     feed_dict[self.atribute_inputs] = atribute_
                     
-                    g_loss_, state_, _ = sess.run([self.g_loss_, self.gen.final_state, optimizer_g], feed_dict)
-                    d_loss_, _ = sess.run([self.d_loss, optimizer_d], feed_dict)
+                    g_loss_, state_, _ = sess.run([self.g_loss, self.gen.final_state, optimizer_g], feed_dict)
+                    d_loss_, _, summary = sess.run([self.d_loss, optimizer_d, merged_summary], feed_dict)
                     g_loss += g_loss_
                     d_loss += d_loss_
                     #print(sess.run(self.fake, feed_dict))
@@ -113,7 +121,8 @@ class model():
                 d_loss /= self.args.max_time_step_num
                 if itr_ % 5 == 0:
                     print(itr_, ":   g_loss:", g_loss, "   d_loss:", d_loss)
-                
+                    train_graph.add_summary(summary, itr_)
+
                 if itr_ % 20 == 0:
                     saver.save(sess, self.args.train_path+"model.ckpt")
                     print("-------------------saved model---------------------")

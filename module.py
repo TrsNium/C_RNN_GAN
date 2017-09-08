@@ -22,7 +22,7 @@ class Generator():
                 rnn_input_ = tf.layers.dense(attribute[:,t_,:], args.gen_rnn_input_size, tf.nn.relu, name="RNN_INPUT_DENSE")
                 _ = tf.layers.dense(x, args.gen_rnn_input_size, tf.nn.relu, name="RNN_PRE_INPUT_DENSE")
                 rnn_output_, state_ = cell_(rnn_input_, self.state_)
-                output_ = tf.nn.sigmoid(tf.clip_by_value(tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE"), -10, 10.))
+                output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
                 outputs.append(output_)
        
             self.final_state = self.state_
@@ -38,7 +38,7 @@ class Generator():
 
                 rnn_input_ = tf.layers.dense(x[:,t_,:], args.gen_rnn_input_size, tf.nn.relu, name="RNN_PRE_INPUT_DENSE")
                 rnn_output_, state_ = cell_(rnn_input_, self.state_)
-                output_ = tf.nn.sigmoid(tf.clip_by_value(tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE"), -10, 10.))
+                output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
                 pre_train_outputs.append(output_)
 
             self.p_state = self.state_
@@ -58,8 +58,10 @@ class Discriminator(object):
         self.name = name
         self.args = args
 
-    def _logits(self, x, y):
+    def _logits(self, x, y, pre_train=False, reuse=False):
         with tf.variable_scope(self.name) as scope:
+            if reuse:
+                scope.reuse_variables()
 
             fw = tf.contrib.rnn.MultiRNNCell([define_cell(self.args.dis_rnn_size, self.args.keep_prob) for _ in range(self.args.num_layers_d)], state_is_tuple=True)
             bw = tf.contrib.rnn.MultiRNNCell([define_cell(self.args.dis_rnn_size, self.args.keep_prob) for _ in range(self.args.num_layers_d)], state_is_tuple=True)
@@ -79,6 +81,8 @@ class Discriminator(object):
                 outputs.append(tf.sigmoid(tf.clip_by_value(tf.layers.dense(tf.concat([rnn_output[0][:,t_,:], rnn_output[1][:,t_,:]], axis=-1), 1, name="RNN_OUTPUT_DENSE"), -20, 20)))
             x_logits = tf.transpose(tf.stack(outputs), (1,0,2))
         
+            if pre_train:
+                return x_logits
             scope.reuse_variables()
             rnn_output, state = tf.nn.bidirectional_dynamic_rnn(fw,
                                                                 bw,
