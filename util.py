@@ -148,7 +148,7 @@ def mk_batch_func_pre_train(batch_size, time_step, fs=100):
 
             x.append(p_r[:,:time_step*max_time_step_num])
             label.append(p_r[:,:time_step*max_time_step_num])
-        return np.transpose(np.array(x), (0,2,1)), np.transpose(np.array(label), (0,2,1))
+        return np.transpose(np.array(x), (0,2,1)).astype(np.float32), np.transpose(np.array(label), (0,2,1)).astype(np.float32)
 
     return mk_batch_func
 

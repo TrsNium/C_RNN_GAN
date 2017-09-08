@@ -6,7 +6,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="")
     parser.add_argument("--lr", dest="lr", type=float, default= 0.08)
     parser.add_argument("--d_lr", dest="d_lr", type=float, default=0.01)
-    parser.add_argument("--train", dest="train", type=bool, default=True)
+    parser.add_argument("--train", dest="train", type=bool, default=False)
     parser.add_argument("--train_itr", dest="train_itrs", type=int, default=1000001)
     parser.add_argument("--pretraining", dest="pretraining", type=bool, default=True)
     parser.add_argument("--pre_train_done", dest="pre_train_done", type=bool, default=False)

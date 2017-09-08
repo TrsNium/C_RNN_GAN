@@ -14,6 +14,7 @@ class Generator():
             cell_ = tf.contrib.rnn.MultiRNNCell([define_cell(args.gen_rnn_size, args.keep_prob) for _ in range(args.num_layers_g)])
          
             self.state_ = cell_.zero_state(batch_size=args.batch_size, dtype=tf.float32)
+            t_state_ = self.state_
             outputs = []
             for t_ in range(args.max_time_step):
                 if t_ != 0:
@@ -21,34 +22,35 @@ class Generator():
 
                 rnn_input_ = tf.layers.dense(attribute[:,t_,:], args.gen_rnn_input_size, tf.nn.relu, name="RNN_INPUT_DENSE")
                 _ = tf.layers.dense(x, args.gen_rnn_input_size, tf.nn.relu, name="RNN_PRE_INPUT_DENSE")
-                rnn_output_, state_ = cell_(rnn_input_, self.state_)
+                rnn_output_, t_state_ = cell_(rnn_input_, t_state_)
                 output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
                 outputs.append(output_)
        
-            self.final_state = self.state_
+            self.final_state = t_state_
             self.outputs = tf.transpose(tf.stack(outputs), (1,0,2))
             scope.reuse_variables()
 
             ##pre training
             self.state_ = cell_.zero_state(batch_size=args.batch_size, dtype=tf.float32)
+            p_state_ = self.state_
             pre_train_outputs = []
             for t_ in range(args.max_time_step):
                 if t_ != 0:
                     scope.reuse_variables()
 
                 rnn_input_ = tf.layers.dense(x[:,t_,:], args.gen_rnn_input_size, tf.nn.relu, name="RNN_PRE_INPUT_DENSE")
-                rnn_output_, state_ = cell_(rnn_input_, self.state_)
+                rnn_output_, p_state_ = cell_(rnn_input_, p_state_)
                 output_ = tf.layers.dense(rnn_output_, args.vocab_size, name="RNN_OUT_DENSE")
                 pre_train_outputs.append(output_)
 
-            self.p_state = self.state_
+            self.p_state = p_state_
             self.pre_train_outputs = tf.transpose(tf.stack(pre_train_outputs), (1,0,2)) 
             reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
             self.reg_loss = args.reg_constant * sum(reg_losses)
     
     def _pre_train(self, y):
         loss = tf.reduce_mean(tf.squared_difference(self.pre_train_outputs, y)) + self.reg_loss
-        return loss, self.p_state
+        return loss, self.p_state, self.pre_train_outputs
 
     def _logits(self):
         return self.outputs, self.state_

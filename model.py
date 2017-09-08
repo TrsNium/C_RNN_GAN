@@ -21,7 +21,7 @@ class model():
         #pre training
         dis = Discriminator(args)
         self.gen = Generator(args, self.pre_train_inputs, self.atribute_inputs)
-        self.p_g_loss, self.p_state = self.gen._pre_train(self.pre_train_labels)
+        self.p_g_loss, self.p_state, self.p_out = self.gen._pre_train(self.pre_train_labels)
         p_d_logits = dis._logits(self.pre_train_labels, None, True, False)
         self.p_d_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=p_d_logits, labels=tf.ones_like(p_d_logits)))
         
@@ -64,7 +64,8 @@ class model():
                     "d_loss": self.p_d_loss,
                     "optimizer_g": optimizer_g_p,
                     "optimizer_d": optimizer_d_p,
-                    "final_state_": self.p_state
+                    "final_state_": self.p_state,
+                    "out": self.p_out
                 }
 
                 for itr in range(self.args.pretrain_itrs):
@@ -84,7 +85,11 @@ class model():
                         state_ = vals["final_state_"]
                         g_loss_ += vals["g_loss"]
                         d_loss_ += vals["d_loss"]
-                        
+                        out = vals["out"]
+                        out[out > 127] = 127
+                        out = np.transpose(out, (0,2,1)).astype(np.int16) 
+                        #print(np.max(out, axis=1))
+                        [piano_roll_to_pretty_midi(out[i,:,:], self.args.fs, 0).write("./generated_mid/p_midi_{}.mid".format(i)) for i in range(self.args.batch_size)] 
                     if itr % 100 == 0:print("itr", itr, "     g_loss:",g_loss_/self.args.pretrain_itrs,"     d_loss:",d_loss_/self.args.pretrain_itrs)
                     if itr % 200 == 0:saver_.save(sess, self.args.pre_train_path)
                 print("finished pre-training")
